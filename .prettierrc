@@ -1,0 +1,9 @@
+{
+  "singleQuote": true,
+  "trailingComma": "all",
+  "endOfLine" : "crlf",
+  'error',
+  {
+    'endOfLine': 'auto',
+  }
+}
