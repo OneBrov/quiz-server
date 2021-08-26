@@ -1,13 +1,14 @@
 /* eslint-disable prettier/prettier */
 import { Injectable } from "@nestjs/common";
 import { InjectModel } from '@nestjs/mongoose';
-import { Audio, AudioDocument } from './schemas/audio.schema';
-import { AudioContent, AudioContentDocument } from './schemas/audioContent.schema';
+import { Audio, AudioDocument } from '../schemas/audio.schema';
+import { AudioContent, AudioContentDocument } from '../schemas/audioContent.schema';
 import { Model } from 'mongoose';
 import { CreateAudioQuizDto } from "./dto/create-audioQuiz.dto";
 import { ObjectId } from "mongoose";
 import { CreateAudioQuizContentDto } from "./dto/create-audioQuizContent.dto";
-import { FileService, FileType } from "src/file/file.service";
+import { FileStoreService, FileType } from "src/file/file.service";
+import { FileStore, FileStoreDocument } from "src/schemas/file.schema";
 
 @Injectable()
 export class AudioService {
@@ -15,10 +16,11 @@ export class AudioService {
     constructor(
         @InjectModel(Audio.name) private audioModel: Model<AudioDocument>,
         @InjectModel(AudioContent.name) private audioContentModel: Model<AudioContentDocument>,
-        private fileService: FileService) {}
+        @InjectModel(FileStore.name) private fileStoreModel: Model<FileStoreDocument>) {}
 
     async create(dto:CreateAudioQuizDto, image):Promise<Audio> {
-        const imagePath = this.fileService.createFile(FileType.IMAGE,image);
+        const imageInst = await this.fileStoreModel.create({data: image.buffer, contentType: image.mimetype});
+        const imagePath =  'file/' + imageInst._id
         const {tags} = dto
         const parsedTags = JSON.parse(tags)
         const audioQuiz = await this.audioModel.create({...dto, playCount:0, imgURL: imagePath, tags: parsedTags});
@@ -49,7 +51,8 @@ export class AudioService {
     }
 
     async addContent(dto: CreateAudioQuizContentDto, audio): Promise<AudioContent>{
-        const audioPath = this.fileService.createFile(FileType.AUDIO, audio);
+        const audioInst = await this.fileStoreModel.create({data: audio.buffer, contentType: audio.mimetype});
+        const audioPath =  'file/' + audioInst._id
         const audioQuiz = await this.audioModel.findById(dto.audioQuizId);
         const {secondaryAnswers} = dto
         const parsedSecondaryAnswers = JSON.parse(secondaryAnswers)
